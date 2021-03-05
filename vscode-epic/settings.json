@@ -1,0 +1,60 @@
+{
+  "vim.hlsearch": true,
+  "vim.useSystemClipboard": false,
+  "vim.insertModeKeyBindings": [
+    {
+      "before": [
+        "j",
+        "k"
+      ],
+      "after": [
+        "<Esc>"
+      ]
+    }
+  ],
+  "vim.useCtrlKeys": true,
+  "vim.handleKeys": {
+    "<C-y>": false,
+    "<C-z>": false,
+    "<C-v>": false,
+    "<C-x>": false,
+    "<C-f>": false,
+    "<C-h>": false,
+  },
+  "vim.leader": "<space>",
+  "workbench.colorCustomizations": {
+    "editorCursor.foreground": "#ffffff",
+    "terminalCursor.foreground": "#ffffff"
+  },
+  "git.autofetch": true,
+  "terraform.indexing": {
+    "enabled": false,
+    "liveIndexing": false,
+    "delay": 500,
+    "exclude": [
+      ".terraform/**/*",
+      "**/.terraform/**/*"
+    ]
+  },
+  "terraform.languageServer": {
+    "external": true
+  },
+  "git.confirmSync": false,
+  "git.postCommitCommand": "push",
+  "git.fetchOnPull": true,
+  "go.formatTool": "goimports",
+  "vim.overrideCopy": false,
+  "window.zoomLevel": 1,
+  "git.enableSmartCommit": true,
+  "editor.insertSpaces": false,
+  "azureResourceManagerTools.parameterFiles": {
+    "f:\\applctns\\kuiper\\meetings\\kuiper stargazing\\1-12-2020 - iac and arm\\vpnvnetpeering.json": "vpnvnetpeering.param.json",
+    "f:\\applctns\\kuiper\\meetings\\kuiper stargazing\\1-12-2020 - iac and arm\\armexample.json": "armexample.param.json"
+  },
+  "workbench.sideBar.location": "left",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true,
+  },
+  "liveshare.authenticationProvider": "Microsoft"
+}
+
