@@ -80,9 +80,16 @@ ZSH_THEME="powerlevel10k/powerlevel10k" # follow instructions at https://github.
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
+    colored-man-pages
     git
     git-prompt
-    colored-man-pages
+    golang
+    kubectl
+    terraform
+    tmux
+    zsh_reload # type 'src' to reload .zshrc
+    zsh-autosuggestions
+    z # better history of file navigation
 )
 
 source $ZSH/oh-my-zsh.sh
@@ -90,9 +97,6 @@ source $ZSH/oh-my-zsh.sh
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
-path+=('/usr/local/omnibus')
-export PATH
-export 'ECCP_OMNIBUS_NAMESERVER=10.142.39.230:53 10.142.39.231:53'
 
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
