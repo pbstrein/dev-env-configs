@@ -87,10 +87,11 @@ plugins=(
     kubectl
     terraform
     tmux
-    zsh_reload # type 'src' to reload .zshrc
+    zsh_reload 
     zsh-autosuggestions
-    z # better history of file navigation
-)
+    z 
+) # refresh using `src`
+
 
 source $ZSH/oh-my-zsh.sh
 
