@@ -111,6 +111,54 @@ source $ZSH/oh-my-zsh.sh
 
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
+#
+# Custom functions
+function update_omnibus() {
+    omnibus_version="v$(dig -t txt omnibus.vers.epiccloud.io +short | sed "s/^\([\"']\)\(.*\)\1\$/\2/g" | awk -F: '{print $2}')" # gets the latest omnibus version
+    omnibus_zip=omnibus_${omnibus_version}_darwin-amd64.tar.gz
+    pushd /usr/local/omnibus
+    sudo curl -LSsOv https://eccpbinaries.blob.core.windows.net/omnibus/${omnibus_zip}
+    sudo tar -xvf ${omnibus_zip}
+    popd
+}
+
+function update_elmer_values_json() {
+    set -x
+    git -C ~/code/elmer-configuration  pull
+    cp ~/code/elmer-configuration/values.json ~/.elmer/pstrein/config-values.json
+}
+
+function post_create_local_dev_cluster() {
+    set -x
+    cluster_name="pstrein"
+    cluster_deployment_path="/Users/pstrein/elmer-deployments/localfs/$cluster_name"
+    dns_number=20
+
+    pushd "$cluster_deployment_path/"
+    cat "$cluster_deployment_path/secrets.json" | jq -r '.azure.acs.a.kubeconfig' | base64 -D > "$cluster_deployment_path/kubeconfig"
+    add_dns $dns_number
+    popd
+}
+
+function create_local_dev_cluster() {
+    set -x
+    cluster_name="pstrein"
+    cluster_deployment_path="/Users/pstrein/elmer-deployments/localfs/$cluster_name"
+    cluster_values_path="$cluster_deployment_path/elmer-configuration/values.json"
+    cluster_secrets_path="$cluster_deployment_path/secrets.json"
+
+    # cluster creation
+    create_cluster -n $cluster_name -t master -c master -d
+    cp "/Users/pstrein/.elmer/pstrein/config-values.json" "$cluster_values_path"
+    cp "/Users/pstrein/.elmer/pstrein/secrets.json" "$cluster_secrets_path"
+
+    # initial deploy
+    deploy_cluster $cluster_name --use-local
+
+    # post deploy steps
+    post_create_local_dev_cluster
+}
+
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
@@ -120,6 +168,8 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+#
+
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
