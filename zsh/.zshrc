@@ -87,7 +87,7 @@ plugins=(
     kubectl
     terraform
     tmux
-    zsh_reload 
+    # zsh_reload is now deprecated to reload, use `omz reload` or `exec zsh`
     zsh-autosuggestions
     z 
 ) # refresh using `src`
