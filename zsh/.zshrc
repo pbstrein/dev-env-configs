@@ -81,6 +81,8 @@ ZSH_THEME="powerlevel10k/powerlevel10k" # follow instructions at https://github.
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
     colored-man-pages
+    docker
+    docker-compose 
     git
     git-prompt
     golang
