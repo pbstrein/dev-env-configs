@@ -115,9 +115,15 @@ source $ZSH/oh-my-zsh.sh
 # export ARCHFLAGS="-arch x86_64"
 #
 # Custom functions
-function update_omnibus() {
+
+function update_omnibus_version() {
     omnibus_version="v$(dig -t txt omnibus.vers.epiccloud.io +short | sed "s/^\([\"']\)\(.*\)\1\$/\2/g" | awk -F: '{print $2}')" # gets the latest omnibus version
     omnibus_zip=omnibus_${omnibus_version}_darwin-amd64.tar.gz
+    export omnibus_version
+    export omnibus_zip
+
+}
+function update_omnibus() {
     pushd /usr/local/omnibus
     sudo curl -LSsOv https://eccpbinaries.blob.core.windows.net/omnibus/${omnibus_zip}
     sudo tar -xvf ${omnibus_zip}
@@ -142,7 +148,7 @@ function post_create_local_dev_cluster() {
     popd
 }
 
-function create_local_dev_cluster() {
+function setup_local_dev_cluster() {
     set -x
     cluster_name="pstrein"
     cluster_deployment_path="/Users/pstrein/elmer-deployments/localfs/$cluster_name"
@@ -150,15 +156,28 @@ function create_local_dev_cluster() {
     cluster_secrets_path="$cluster_deployment_path/secrets.json"
 
     # cluster creation
-    create_cluster -n $cluster_name -t master -c master -d
+    create_cluster -n $cluster_name -t main -c main -d
     cp "/Users/pstrein/.elmer/pstrein/config-values.json" "$cluster_values_path"
     cp "/Users/pstrein/.elmer/pstrein/secrets.json" "$cluster_secrets_path"
+}
+
+function create_local_dev_cluster() {
+    set -x
+    cluster_name="pstrein"
+
+    setup_local_dev_cluster
 
     # initial deploy
-    deploy_cluster $cluster_name --use-local
+    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name --use-local
 
     # post deploy steps
     post_create_local_dev_cluster
+
+    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name --use-local
+}
+
+function login_acrdev() {
+    az acr login -n eccpdevel
 }
 
 
@@ -175,3 +194,4 @@ function create_local_dev_cluster() {
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+autoload -U compinit; compinit
