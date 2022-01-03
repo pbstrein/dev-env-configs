@@ -132,8 +132,9 @@ function update_omnibus() {
 
 function update_elmer_values_json() {
     set -x
-    git -C ~/code/elmer-configuration  pull
-    cp ~/code/elmer-configuration/values.json ~/.elmer/pstrein/config-values.json
+    git -C ~/code/elmer-configuration fetch origin
+    git -C ~/code/elmer-configuration rebase personal-cluster-template
+    cp  ~/code/elmer-configuration/values.json /home/pstrein/.elmer/pstrein/values.json       
 }
 
 function post_create_local_dev_cluster() {
