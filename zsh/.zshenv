@@ -1,9 +1,13 @@
+path+=('/home/pstrein/.local/bin')
+path+=('/home/pstrein/go/bin')
+
 # Cloud Foundations specific
 export GOPRIVATE="*.epic.com"
 
 # Path
 path+=('/usr/local/omnibus')
-path+=("$HOME/go/bin") # include default go location for packages/tools
+#path+=("$HOME/go/bin") # include default go location for packages/tools
+path+=("/usr/local/go/bin") # include default go location for packages/tools
 path+=("$HOME/.nvm") # include node stuff
 export PATH
 export 'ECCP_OMNIBUS_NAMESERVER=10.142.39.230:53 10.142.39.231:53'
@@ -20,3 +24,6 @@ export KUBECONFIG=./kubeconfig
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm
+
+# export gitlab tokens as environment variables
+export $(grep -v '^#' ~/nebula/.gitlab-tokens | xargs)
