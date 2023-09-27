@@ -129,7 +129,6 @@ function update_elmer_values_json() {
 function post_create_local_dev_cluster() {
     set -x
     cluster_name=$1
-    dns_number=$2
     cluster_deployment_path="/home/pstrein/elmer-deployments/localfs/$cluster_name"
 
     pushd "$cluster_deployment_path/"
@@ -154,18 +153,97 @@ function setup_local_dev_cluster() {
 function create_local_dev_cluster() {
     set -x
     cluster_name=$1
-    dns_number=$2
 
     setup_local_dev_cluster $cluster_name
 
     # initial deploy
-    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name --use-local
+    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name
 
     # post deploy steps
-    post_create_local_dev_cluster $pstrein $dns_number
+    post_create_local_dev_cluster $pstrein
 
-    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name --use-local
+    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name
 }
+
+function enable_forge() {
+  if [[ $# -ne 1 ]] ; then
+    echo "Usage: ${0} <cluster_name>"
+    return
+  fi
+  CLUSTER_NAME=$1
+  CLUSTER_DEPLOYMENT_PATH="/home/pstrein/elmer-deployments/localfs/$CLUSTER_NAME"
+  VALUES_JSON="$CLUSTER_DEPLOYMENT_PATH/elmer-configuration/values.json"
+  SECRETS_JSON="$CLUSTER_DEPLOYMENT_PATH/secrets.json"
+
+
+  FORGE_JQFILTER=$(cat <<EOF
+.apps.forge +=
+{
+    "enabled": true
+}
+EOF
+  );
+  TMP=$(mktemp) && jq "${FORGE_JQFILTER}" "${VALUES_JSON}" > "${TMP}" && mv "${TMP}" "${VALUES_JSON}"
+
+  #DNS_JQFILTER=$(cat <<EOF
+#.core.dns.domains =
+#[
+    #"$CLUSTER_NAME.eccp-dev.epic.com"
+#]
+#EOF
+  #);
+  #TMP=$(mktemp) && jq "${DNS_JQFILTER}" "${VALUES_JSON}" > "${TMP}" && mv "${TMP}" "${VALUES_JSON}"
+#
+  #CERTMANAGER_JQFILTER=$(cat <<EOF
+#.certManager+= 
+#{
+    #"acme": {
+      #"issuerToUse": "manual"
+    #}
+#}
+#EOF
+  #);
+  #TMP=$(mktemp) && jq "${CERTMANAGER_JQFILTER}" "${VALUES_JSON}" > "${TMP}" && mv "${TMP}" "${VALUES_JSON}"
+}
+
+function add_ns_servers() {
+    if [[ $# -ne 2 ]] ; then
+      echo "Usage: ${0} <cluster_name> <ns_record_name>"
+      return
+    fi
+    CLUSTER_NAME=$1
+    DNS_RECORD_NAME=$2
+
+    CLUSTER_DEPLOYMENT_PATH="/home/pstrein/elmer-deployments/localfs/$CLUSTER_NAME"
+    VALUES_JSON="$CLUSTER_DEPLOYMENT_PATH/elmer-configuration/values.json"
+
+    DNS_NAME_ELMER="$CLUSTER_NAME_eccp-dev_epic_com"
+    NS_SERVERS=$(cat $VALUES_JSON | jq '.core.dns.nameServers."pstrein_eccp-dev_epic_com"')
+
+    # make the NS servers formatted in the format Azure expects
+    NS_SERVERS_AZURE_FORMATTED=$(echo $NS_SERVERS | jq -r '.'| jq 'map(. | {"nsdname": .})')
+
+    az network dns record-set ns update --set nsRecords=$NS_SERVERS_AZURE_FORMATTED --resource-group rg-nebula-personal-cluster-dns --zone-name eccp-dev.epic.com --name $DNS_RECORD_NAME --subscription "CS Dev Personal Clusters"
+}
+
+function create_local_dev_cluster_with_forge() {
+    set -x
+    cluster_name=$1
+    cert_name=$2
+
+    setup_local_dev_cluster $cluster_name
+    enable_forge $cluster_name
+
+    # initial deploy
+    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name
+
+    # post deploy steps
+    post_create_local_dev_cluster $cluster_name
+    add_ns_servers $cluster_name $cluster_name
+
+    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name
+}
+
 
 # Preferred editor for local and remote sessions
 # if [[ -n $SSH_CONNECTION ]]; then
@@ -201,3 +279,7 @@ autoload -U compinit; compinit
 
 # enables mouse in TMUX, assumes `echo set -g mouse on > ~/.tmux.conf`
 #tmux set mouse # enabl
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
