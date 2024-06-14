@@ -131,9 +131,10 @@ function post_create_local_dev_cluster() {
     cluster_name=$1
     cluster_deployment_path="/home/pstrein/elmer-deployments/localfs/$cluster_name"
 
-    pushd "$cluster_deployment_path/"
-    cat "$cluster_deployment_path/secrets.json" | jq -r '.azure.acs.a.kubeconfig' | base64 -d > "$cluster_deployment_path/kubeconfig"
-    popd
+    #pushd "$cluster_deployment_path/"
+    elmer dep template $cluster_name '{{.Secrets.azure.acs.a.kubeconfig | DecodeBase64 }}' > $cluster_deployment_path/kubeconfig
+    #cat "$cluster_deployment_path/secrets.json" | jq -r '.Secrets.azure.acs.a.kubeconfig' | base64 -d > "$cluster_deployment_path/kubeconfig"
+    #popd
 }
 
 function setup_local_dev_cluster() {
@@ -242,6 +243,95 @@ function create_local_dev_cluster_with_forge() {
     add_ns_servers $cluster_name $cluster_name
 
     EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 deploy_cluster $cluster_name
+}
+
+function create_evc_cluster() {
+    set -x
+    cluster_name=$1
+    elmer_core_branch_name=$2
+
+    elmer dep create $cluster_name --personal -t $elmer_core_branch_name --secrets ~/nebula/personal-cluster-secrets/secrets.json -d
+
+    # add EVC specific configuration
+    cat ~/.elmer/customizations/evc.json | elmer key set --cwd ~/elmer-deployments/localfs/$cluster_name/elmer-configuration -f object .
+    id=$(az ad signed-in-user show | jq -r '.objectId')
+    elmer key set --cwd ~/elmer-deployments/localfs/pstrein/elmer-configuration azure.keyVault.accounts.evc.accessPolicies.me.principal $id
+    elmer key set --cwd ~/elmer-deployments/localfs/$cluster_name/elmer-configuration azure.keyVault.accounts.evc.accessPolicies.me.principal $id
+
+    EPIC_ELMER_TERRAFORM_AUTO_ACCEPT_CHANGES=1 elmer dep apply $cluster_name
+
+    post_create_local_dev_cluster $cluster_name
+
+}
+
+function enable_mars_rover() {
+    set -x
+    cluster_name=$1
+
+    lic=$(cat ~/.mars-rover/gitlab-enterprise-license)
+    elmerSPClientSecret=$(cat ~/.mars-rover/elmer-sp-client-secret)
+
+    echo '{
+    "k8s": {
+    "namespaces": {
+      "nats": {
+        "enabled": "true",
+        "name": "nats"
+      }
+    }
+  },
+  "nats": {
+    "users": {
+      "mars": {
+        "enabled": "true",
+        "name": "mars"
+      }
+    }
+  },
+  "mars": {
+    "epicPollDuration": "5s"
+  },
+ "azure": {
+    "aks": {
+      "node_pools": {
+        "core": {
+          "node_count": 3
+          "vm_size": "Standard_E4ds_v5",
+        }
+      }
+    }
+  }
+}' | elmer key set --format object --cwd ~/elmer-deployments/localfs/$cluster_name/elmer-configuration .
+
+    echo "{
+      \"mars\": {
+        \"elmerSPClientSecret\": \"${elmerSPClientSecret}\",
+        \"gitlab\": {
+          \"rootPassword\": \"K2IS02kw1\",
+          \"license\": \"${lic}\"
+        },
+        \"pg\": {
+          \"password\": \"1lknjnuim8921908\"
+        }
+      }
+    }" | elmer key set --format object -b ~/elmer-deployments/localfs/$cluster_name/secrets.json .
+
+    MARSROVER_MAIN_VERSION=$(curl --header "PRIVATE-TOKEN: $CLOUDLAB_TOKEN_EPIC91606_2024" "https://cloudlab.epic.com/api/v4/projects/915/repository/files/package.json/raw?ref=main" | jq -r .version)
+    
+    elmer key set --cwd ~/elmer-deployments/localfs/$cluster_name/elmer-configuration mars.gitlab.tag 16.8.7-ee.0
+
+    TMP=$(mktemp)
+
+    cat ~/elmer-deployments/localfs/$cluster_name/elmer-core/development/manifest.json | jq '.groups[3].artifacts += [{
+  "name": "deployment-nats",
+  "repository": "eccp",
+  "version": "0.0.2"
+},{
+  "name": "service-mars-rover",
+  "repository": "eccp",
+  "version": "0.0.54"
+}
+]' > $TMP && mv $TMP ~/elmer-deployments/localfs/$cluster_name/elmer-core/development/manifest.json
 }
 
 
